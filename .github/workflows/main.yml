@@ -1,0 +1,58 @@
+name: KotIT Pipeline Runner
+
+on:
+  workflow_dispatch: # manual trigger
+  push:
+    branches:
+      - test # auto-trigger on push to main
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the current repo (this will be your --android_repo path)
+      - name: Checkout Android repo (current repo)
+        uses: actions/checkout@v4
+
+      # Clone kotIT repo that has kotit_pipeline_new.py
+      - name: Clone kotIT repo
+        run: |
+          git clone https://github.com/Siddhant53000/kotIT.git kotIT
+
+      # Setup Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          cd kotIT
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      # Run the pipeline command from kotIT root
+      - name: Run KotIT pipeline
+        run: |
+          cd kotIT
+          python3 kotit_pipeline_new.py all \
+            --android_repo $GITHUB_WORKSPACE \
+            --app_name YourApp \
+            --package com.your.app \
+            --modules '["core"]' \
+            --ios_repo /absolute/path/to/ios/repo \
+            --xcodeproj Archi2.xcodeproj Debug
+
+      # Push SwiftOut to another repo
+      - name: Push SwiftOut to Output Repo
+        run: |
+          cd kotIT/SwiftOut
+          git init
+          git config user.name "${{ secrets.GIT_USER_NAME }}"
+          git config user.email "${{ secrets.GIT_USER_EMAIL }}"
+          git remote add origin https://x-access-token:${{ secrets.USER_GITHUB_TOKEN }}@github.com/YourOrg/your-output-repo.git
+          git add .
+          git commit -m "Automated SwiftOut update from pipeline"
+          git branch -M main
+          git push -f origin main

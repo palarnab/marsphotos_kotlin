@@ -1,0 +1,73 @@
+name: KotIT Pipeline Runner - Parametrized
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_name:
+        description: "App Name"
+        required: true
+        default: "YourApp"
+      package_name:
+        description: "Android Package Name"
+        required: true
+        default: "com.your.app"
+      modules:
+        description: "Modules to include (JSON array string)"
+        required: true
+        default: '["core"]'
+      ios_repo:
+        description: "Path to iOS repo"
+        required: true
+        default: "/absolute/path/to/ios/repo"
+      xcodeproj:
+        description: "Xcode Project & Build Configuration"
+        required: true
+        default: "Archi2.xcodeproj Debug"
+  push:
+    branches:
+      - test
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Android repo
+        uses: actions/checkout@v4
+
+      - name: Clone kotIT repo
+        run: git clone https://github.com/Siddhant53000/kotIT.git kotIT
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          cd kotIT
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run KotIT pipeline
+        run: |
+          cd kotIT
+          python3 kotit_pipeline_new.py all \
+            --android_repo $GITHUB_WORKSPACE \
+            --app_name "${{ github.event.inputs.app_name }}" \
+            --package "${{ github.event.inputs.package_name }}" \
+            --modules '${{ github.event.inputs.modules }}' \
+            --ios_repo "${{ github.event.inputs.ios_repo }}" \
+            --xcodeproj "${{ github.event.inputs.xcodeproj }}"
+
+      - name: Push SwiftOut to Output Repo
+        run: |
+          cd kotIT/SwiftOut
+          git init
+          git config user.name "${{ secrets.GIT_USER_NAME }}"
+          git config user.email "${{ secrets.GIT_USER_EMAIL }}"
+          git remote add origin https://x-access-token:${{ secrets.USER_GITHUB_TOKEN }}@github.com/YourOrg/your-output-repo.git
+          git add .
+          git commit -m "Automated SwiftOut update from pipeline"
+          git branch -M main
+          git push -f origin main
