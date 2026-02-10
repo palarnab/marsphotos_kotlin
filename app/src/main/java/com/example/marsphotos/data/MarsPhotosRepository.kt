@@ -21,13 +21,4 @@ class NetworkMarsPhotosRepository(
     }.catch { throwable ->
         emit(DataResult.Error(throwable))
     }
-	
-	override fun getMarsPhotosById(id): Flow<DataResult<List<MarsPhoto>>> = flow {
-        emit(DataResult.Loading)
-
-        val photos = marsApiService.getPhotos(id)
-        emit(DataResult.Success(photos))
-    }.catch { throwable ->
-        emit(DataResult.Error(throwable))
-    }
 }
