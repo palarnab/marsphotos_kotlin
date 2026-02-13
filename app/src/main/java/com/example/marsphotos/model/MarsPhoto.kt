@@ -27,6 +27,4 @@ data class MarsPhoto(
     val id: String,
     @SerialName(value = "img_src")
     val imgSrc: String
-	@SerialName(value = "img_alt")
-    val imgAlt: String
 )
